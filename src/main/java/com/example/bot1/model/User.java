@@ -18,6 +18,8 @@ public class User {
 
     private Timestamp registeredAt;
 
+    private boolean isActive;
+
     public Long getChatId() {
         return chatId;
     }
@@ -56,6 +58,14 @@ public class User {
 
     public void setRegisteredAt(Timestamp registeredAt) {
         this.registeredAt = registeredAt;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
     }
 
     @Override

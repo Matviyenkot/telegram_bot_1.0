@@ -6,6 +6,7 @@ import com.example.bot1.utils.BotUtils;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.interfaces.BotApiObject;
@@ -18,11 +19,8 @@ import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
-import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,8 +30,8 @@ import static com.example.bot1.utils.BotUtils.Commands.*;
 
 @Component
 @Slf4j
+@EnableAspectJAutoProxy
 public class TelegramBot extends TelegramLongPollingBot {
-
 
     private final DBCommutator commutator;
     private final BotUtils utils;
@@ -90,34 +88,36 @@ public class TelegramBot extends TelegramLongPollingBot {
 
         if(update.hasMessage() && update.getMessage().hasText()){
             Message message = update.getMessage();
-            long id = message.getChatId();
+            long chatId = message.getChatId();
 
-            switch (message.getText()){
-                case START:
-                    startReceivedMessage(id, message);
-                    break;
-                case HELP:
-                    getHelpInfo(id);
-                    break;
-                case DELETE_PROFILE:
-                    confirmUserDataDelete(id);
-                    break;
-                case SETTINGS:
-                    getSettings(id, message);
-                    break;
-                case MY_PROFILE:
-                    getUserData(id);
-                    break;
-                default:
-                    sendMessage(id, "Hello " + message.getChat().getFirstName() + ", put right command");
-            }
+            commandsReceiveCases(chatId, message);
         } else if(update.hasCallbackQuery() && inLineButtonsActive){
             CallbackQuery query = update.getCallbackQuery();
 
             userDataDelete(query);
         }
+    }
 
-
+    public void commandsReceiveCases(long chatId, Message message){
+        switch (message.getText()){
+            case START:
+                startReceivedMessage(chatId, message);
+                break;
+            case HELP:
+                getHelpInfo(chatId);
+                break;
+            case DELETE_PROFILE:
+                confirmUserDataDelete(chatId);
+                break;
+            case SETTINGS:
+                getSettings(chatId, message);
+                break;
+            case MY_PROFILE:
+                sendUserData(chatId);
+                break;
+            default:
+                sendMessage(chatId, "Hello " + message.getChat().getFirstName() + ", put right command");
+        }
     }
 
     private void getSettings(long id, BotApiObject message) {
@@ -164,12 +164,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
-    private void getUserData(long id){
+    private void sendUserData(long id){
         Optional<User> user = commutator.getUserData(id);
 
         if(user.isEmpty()){
             sendMessage(id, "We don't have any data about you");
-            log.info(this.getClass().getName() + " Data about user was not received");
         } else {
             sendMessage(id, user.get().toString());
         }
@@ -178,10 +177,11 @@ public class TelegramBot extends TelegramLongPollingBot {
     private void startReceivedMessage(long id, BotApiObject msg){
 
         Message message  = (Message) msg;
-        commutator.registerUser(message);
+        log.info("/start command received from User: [" + message.getChat().getUserName() + "]");
+
+        commutator.registerNewUser(message);
 
         String answer = EmojiParser.parseToUnicode("Hello, " + message.getChat().getUserName() + " , nice to meet you! " + ":blush:");
-        log.info("/start command received from User: [" + message.getChat().getUserName() + "]");
 
         sendMessage(id, answer);
     }

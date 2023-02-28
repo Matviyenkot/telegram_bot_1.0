@@ -22,7 +22,6 @@ public class DBCommutator {
     }
 
     public Optional<User> getUserData(long id){
-
         return repository.findById(id);
     }
 
@@ -30,19 +29,17 @@ public class DBCommutator {
 
     }
 
-    public void registerUser(Message msg) {
+    public boolean registerNewUser(Message msg) {
         if(repository.findById(msg.getChatId()).isEmpty()){
-            User user = setUpUser(msg);
-
+            User user = setUpNewUser(msg);
             repository.save(user);
-
-            log.info(this.getClass().getName() + " Save User: \n" + user);
+            return true;
         } else {
-            log.info(this.getClass().getName() + " User was not saved");
+            return false;
         }
     }
 
-    private User setUpUser(Message msg){
+    private User setUpNewUser(Message msg){
         var chatId = msg.getChatId();
         var chat = msg.getChat();
 
@@ -53,6 +50,7 @@ public class DBCommutator {
         user.setLastName(chat.getLastName());
         user.setUserName(chat.getUserName());
         user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+        user.setActive(true);
 
         return user;
     }
